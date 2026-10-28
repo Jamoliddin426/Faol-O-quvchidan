@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faol o‘quvchidan faol fuqarolikkacha - Interaktiv Taqdimot</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b132b',
+                        darkCard: 'rgba(28, 37, 65, 0.85)',
+                        neonMint: '#00f5d4',
+                        neonCyan: '#00b4d8',
+                        accentGold: '#ffb703',
+                        printerGold: '#e0a96d',
+                        accentPurple: '#7b2cbf'
+                    },
+                    boxShadow: {
+                        neon: '0 0 25px rgba(0, 245, 212, 0.35)',
+                        cyanGlow: '0 0 30px rgba(0, 180, 216, 0.4)',
+                        goldGlow: '0 0 25px rgba(255, 183, 3, 0.4)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #0b132b;
+            color: #f1f5f9;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            perspective: 1200px;
+        }
+
+        /* Animated background canvas */
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(28, 37, 65, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 245, 212, 0.5);
+            transform: translateY(-8px) rotateX(2deg) rotateY(-2deg) scale(1.02);
+            box-shadow: 0 20px 40px -15px rgba(0, 245, 212, 0.3);
+        }
+
+        /* Slide animations */
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(0.92) translateZ(-100px) rotateY(-8deg);
+            z-index: 10;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1) translateZ(0) rotateY(0deg);
+            z-index: 20;
+        }
+
+        /* Staggered element reveals */
+        .slide.active .reveal {
+            animation: slideUpFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(35px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
+
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(0, 245, 212, 0.4);
+            border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 245, 212, 0.7);
+        }
+
+        /* Glowing text & borders */
+        .text-glow-mint {
+            text-shadow: 0 0 15px rgba(0, 245, 212, 0.6);
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { border-color: rgba(255, 183, 3, 0.7); box-shadow: 0 0 25px rgba(255, 183, 3, 0.4); }
+            50% { border-color: rgba(0, 245, 212, 0.9); box-shadow: 0 0 40px rgba(0, 245, 212, 0.6); }
+        }
+
+        .leader-border {
+            animation: pulseGlow 2.5s infinite ease-in-out;
+        }
+
+        /* Sticker Floating Animation */
+        @keyframes floatSticker {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(4deg); }
+        }
+        .float-sticker {
+            display: inline-block;
+            animation: floatSticker 3s ease-in-out infinite;
+        }
+
+        /* Golden Printer Button Styling as in user image */
+        .btn-printer-gold {
+            background: #dca743;
+            border-radius: 14px;
+            color: #0b132b;
+            box-shadow: 0 0 15px rgba(220, 167, 67, 0.4);
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-printer-gold:hover {
+            background: #f1b84f;
+            transform: scale(1.06);
+            box-shadow: 0 0 25px rgba(220, 167, 67, 0.7);
+        }
+
+        /* PRINT STYLES - FOR CLEAN PAPER & PDF OUTPUT */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                overflow: visible !important;
+                height: auto !important;
+            }
+            #bg-canvas, header, footer, #catalog-modal {
+                display: none !important;
+            }
+            #slides-container {
+                display: block !important;
+                position: static !important;
+                height: auto !important;
+            }
+            .slide {
+                position: relative !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                transform: none !important;
+                page-break-after: always !important;
+                height: 100vh !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                color: black !important;
+            }
+            .glass-panel, .glass-card {
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                color: #0f172a !important;
+                box-shadow: none !important;
+                backdrop-filter: none !important;
+            }
+            .text-white, .text-slate-300, .text-slate-200, .text-slate-400 {
+                color: #0f172a !important;
+            }
+        }
+    </style>
+</head>
+<body class="relative flex flex-col justify-between h-screen w-screen overflow-hidden select-none">
+
+    <!-- Dynamic 3D Particle Background Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- TOP CONTROL BAR -->
+    <header class="relative z-50 px-4 py-3 glass-panel border-b border-slate-700/50 flex items-center justify-between shadow-xl">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-neonMint via-neonCyan to-purple-600 flex items-center justify-center font-black text-slate-950 shadow-neon text-base">
+                🚀
+            </div>
+            <div>
+                <h1 class="text-xs md:text-sm font-extrabold bg-gradient-to-r from-neonMint via-white to-neonCyan bg-clip-text text-transparent">
+                    Faol o‘quvchidan faol fuqarolikkacha
+                </h1>
+                <p class="text-[10px] text-slate-300 hidden sm:block">Interaktiv taqdimot va amaliy qo‘llanma</p>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="flex items-center space-x-2 text-xs">
+            <!-- Fullscreen Enter/Exit -->
+            <button id="btn-fullscreen-toggle" onclick="toggleFullScreen()" title="To'liq ekran" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 text-slate-200 transition active:scale-95">
+                <svg id="icon-fs-enter" class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                <svg id="icon-fs-exit" class="w-4 h-4 fill-current hidden" viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+            </button>
+
+            <!-- Slide Catalog Modal Trigger -->
+            <button onclick="toggleModal('catalog-modal')" title="Slaydlar katalogi" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 text-slate-200 flex items-center space-x-1.5 transition active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <span class="hidden md:inline font-medium">Katalog</span>
+            </button>
+
+            <!-- Auto Play Slideshow -->
+            <button id="btn-autoplay" onclick="toggleAutoPlay()" title="Avto-namoyish" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 text-slate-200 flex items-center space-x-1.5 transition active:scale-95">
+                <svg id="icon-play" class="w-4 h-4 fill-current text-neonMint" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <svg id="icon-pause" class="w-4 h-4 fill-current text-amber-400 hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                <span class="hidden md:inline font-medium" id="label-autoplay">Avto</span>
+            </button>
+
+            <!-- GOLDEN PRINTER BUTTON (Matching user requested image) -->
+            <button onclick="printPresentation()" title="Chop etish (Печать / Print / Save PDF)" class="btn-printer-gold p-2.5 flex items-center justify-center font-bold active:scale-95" aria-label="Printer">
+                <svg class="w-5 h-5 fill-none stroke-current stroke-[2.2]" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 9V2h12v7"></path>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8" rx="1"></rect>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN SLIDES CONTAINER -->
+    <main id="slides-container" class="relative flex-1 w-full h-full overflow-hidden">
+
+        <!-- SLIDE 1: Titul -->
+        <section class="slide active flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-4xl w-full text-center space-y-6">
+                <div class="reveal inline-flex items-center space-x-2 px-4 py-2 rounded-full glass-panel border border-neonMint/40 text-neonMint text-xs md:text-sm font-bold tracking-wide uppercase shadow-neon">
+                    <span class="float-sticker">🌟</span>
+                    <span>Kelajak Yetakchilari Uchun Maxsus</span>
+                    <span class="float-sticker">🌟</span>
+                </div>
+                <h1 class="reveal delay-1 text-4xl sm:text-6xl md:text-7xl font-black text-white leading-tight tracking-tight">
+                    Faol o‘quvchidan <br>
+                    <span class="bg-gradient-to-r from-neonMint via-neonCyan to-purple-400 bg-clip-text text-transparent text-glow-mint">
+                        faol fuqarolikkacha
+                    </span>
+                </h1>
+                <p class="reveal delay-2 text-slate-200 text-base md:text-2xl max-w-2xl mx-auto font-light leading-relaxed">
+                    🎯 Tashabbus &bull; 🤝 Mas'uliyat &bull; 🏛️ Kelajak
+                </p>
+                <div class="reveal delay-3 pt-6 flex flex-wrap justify-center gap-4">
+                    <button onclick="nextSlide()" class="px-8 py-4 rounded-2xl bg-gradient-to-r from-neonMint to-neonCyan text-slate-950 font-extrabold text-base hover:opacity-95 shadow-cyanGlow transition transform hover:scale-105 active:scale-95 flex items-center space-x-2">
+                        <span>Boshlash</span>
+                        <span class="float-sticker">🚀</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 2: Faol o‘quvchi kim? -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-5xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-neonMint font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">🎓</span> 1-Bosqich
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Faol o‘quvchi kim?</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Faqat a'lo baho olish emas, balki intellektual va ijtimoiy faollik ko'rsatish</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="glass-card p-6 rounded-2xl reveal delay-1 flex items-start space-x-4 border-l-4 border-l-neonMint">
+                        <div class="p-3 rounded-2xl bg-neonMint/20 text-neonMint font-extrabold text-2xl float-sticker">🔎</div>
+                        <div class="space-y-1">
+                            <h3 class="text-lg font-bold text-white">Izlanuvchan va Tanqidiy Fikrlovchi</h3>
+                            <p class="text-slate-300 text-xs md:text-sm">Tayyor axborotni shubhasiz qabul qilmaydi. Sabab va oqibatni tahlil qiladi, qo'shimcha manbalarni o'rganadi.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-2 flex items-start space-x-4 border-l-4 border-l-neonCyan">
+                        <div class="p-3 rounded-2xl bg-neonCyan/20 text-neonCyan font-extrabold text-2xl float-sticker">⏰</div>
+                        <div class="space-y-1">
+                            <h3 class="text-lg font-bold text-white">Intizomli va Maqsadli</h3>
+                            <p class="text-slate-300 text-xs md:text-sm">Vaqtini to'g'ri taqsimlaydi, shaxsiy rivojlanish va o'qishini doimiy muvozanatda saqlaydi.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-3 flex items-start space-x-4 border-l-4 border-l-amber-400">
+                        <div class="p-3 rounded-2xl bg-amber-400/20 text-amber-400 font-extrabold text-2xl float-sticker">💬</div>
+                        <div class="space-y-1">
+                            <h3 class="text-lg font-bold text-white">Savol Bera Oladigan</h3>
+                            <p class="text-slate-300 text-xs md:text-sm">O'z fikrini erkin bayon qila oladi, darslarda savollar berishdan va munozaradan chekinmaydi.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-4 flex items-start space-x-4 border-l-4 border-l-purple-400">
+                        <div class="p-3 rounded-2xl bg-purple-400/20 text-purple-400 font-extrabold text-2xl float-sticker">✨</div>
+                        <div class="space-y-1">
+                            <h3 class="text-lg font-bold text-white">Tashabbuskor va Amaliyotchi</h3>
+                            <p class="text-slate-300 text-xs md:text-sm">Bilimni faqat nazariyada qoldirmaydi, uni tengdoshlariga ulashadi va amaliy loyihalarga aylantiradi.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 3: Faol fuqarolik nima? -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-5xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-neonCyan font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">🏛️</span> 2-Bosqich
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Faol fuqarolik nima?</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">O'z jamiyati, mahallasi va mamlakati taqdiriga daxldorlik hissi</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="glass-card p-6 rounded-2xl reveal delay-1 text-center space-y-3">
+                        <div class="w-14 h-14 mx-auto rounded-2xl bg-neonMint/20 flex items-center justify-center text-neonMint font-bold text-3xl float-sticker">
+                            🏛️
+                        </div>
+                        <h3 class="font-bold text-white text-base">Jamiyat Rivoji</h3>
+                        <p class="text-slate-300 text-xs leading-relaxed">Atrofdagi muammolarga befarq bo'lmaslik va ijtimoiy manfaatlarni tushunish.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-2 text-center space-y-3">
+                        <div class="w-14 h-14 mx-auto rounded-2xl bg-neonCyan/20 flex items-center justify-center text-neonCyan font-bold text-3xl float-sticker">
+                            ⚖️
+                        </div>
+                        <h3 class="font-bold text-white text-base">Qonunlarga Hurmat</h3>
+                        <p class="text-slate-300 text-xs leading-relaxed">Huquqiy savodxonlik, tartib-qoidalarga rioya qilish va adolatni qadrlash.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-3 text-center space-y-3">
+                        <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-400/20 flex items-center justify-center text-amber-400 font-bold text-3xl float-sticker">
+                            🤝
+                        </div>
+                        <h3 class="font-bold text-white text-base">Ijtimoiy Mas'uliyat</h3>
+                        <p class="text-slate-300 text-xs leading-relaxed">O'z xatti-harakatlarining jamiyatga ta'sirini anglash va javobgarlikni his etish.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-4 text-center space-y-3">
+                        <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-400/20 flex items-center justify-center text-emerald-400 font-bold text-3xl float-sticker">
+                            🌱
+                        </div>
+                        <h3 class="font-bold text-white text-base">Ekologik Ogohlik</h3>
+                        <p class="text-slate-300 text-xs leading-relaxed">Atrof-muhitni asrash, tabiat va resurslardan tejamkorlik bilan foydalanish.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 4: Maktabdagi odatlar va kelajakdagi fazilatlar -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-5xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-accentGold font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">🌉</span> Rivojlanish Ko‘prigi
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Maktab Odatlari &rarr; Kelajak Fazilatlari</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Bugungi maktab muhiti — ertangi katta hayotning sinov maydoni</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="glass-card p-5 rounded-2xl reveal delay-1 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 border-l-neonMint">
+                        <div class="flex items-center space-x-4 w-full md:w-5/12">
+                            <span class="p-3 rounded-xl bg-neonMint/20 text-neonMint text-xl float-sticker">⏱️</span>
+                            <div>
+                                <h4 class="font-bold text-white text-base">Vaqtni to'g'ri taqsimlash</h4>
+                                <p class="text-slate-400 text-xs">Kunlik reja, dars intizomi</p>
+                            </div>
+                        </div>
+                        <div class="text-neonMint font-bold text-xl hidden md:block">&rarr;</div>
+                        <div class="flex items-center space-x-4 w-full md:w-5/12">
+                            <span class="p-3 rounded-xl bg-neonMint/20 text-neonMint text-xl float-sticker">👑</span>
+                            <div>
+                                <h4 class="font-bold text-white text-base">Mas'uliyatli Yetakchilik</h4>
+                                <p class="text-slate-300 text-xs">Katta loyihalar va jamoani boshqarish</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl reveal delay-2 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 border-l-neonCyan">
+                        <div class="flex items-center space-x-4 w-full md:w-5/12">
+                            <span class="p-3 rounded-xl bg-neonCyan/20 text-neonCyan text-xl float-sticker">👥</span>
+                            <div>
+                                <h4 class="font-bold text-white text-base">Guruhda hamkorlik qilish</h4>
+                                <p class="text-slate-400 text-xs">Sinfdoshlar bilan loyihalar</p>
+                            </div>
+                        </div>
+                        <div class="text-neonCyan font-bold text-xl hidden md:block">&rarr;</div>
+                        <div class="flex items-center space-x-4 w-full md:w-5/12">
+                            <span class="p-3 rounded-xl bg-neonCyan/20 text-neonCyan text-xl float-sticker">🌐</span>
+                            <div>
+                                <h4 class="font-bold text-white text-base">Hamkor Fuqaro</h4>
+                                <p class="text-slate-300 text-xs">Jamiyat muammolarini birgalikda hal etish</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl reveal delay-3 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 border-l-purple-400">
+                        <div class="flex items-center space-x-4 w-full md:w-5/12">
+                            <span class="p-3 rounded-xl bg-purple-400/20 text-purple-400 text-xl float-sticker">💡</span>
+                            <div>
+                                <h4 class="font-bold text-white text-base">Kichik muammolarni hal etish</h4>
+                                <p class="text-slate-400 text-xs">Sinf xonasini obodonlashtirish</p>
+                            </div>
+                        </div>
+                        <div class="text-purple-400 font-bold text-xl hidden md:block">&rarr;</div>
+                        <div class="flex items-center space-x-4 w-full md:w-5/12">
+                            <span class="p-3 rounded-xl bg-purple-400/20 text-purple-400 text-xl float-sticker">🚀</span>
+                            <div>
+                                <h4 class="font-bold text-white text-base">Innovator va Islohotchi</h4>
+                                <p class="text-slate-300 text-xs">Mahalla va shahar darajasidagi tashabbuslar</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 5: Huquq va mas’uliyat -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-5xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-neonMint font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">⚖️</span> Muvozanat
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Huquq va Mas’uliyat Tengligi</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Har bir huquq o'zi bilan tegishli mas'uliyatni olib keladi</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Rights -->
+                    <div class="glass-card p-6 rounded-2xl reveal delay-1 border-t-4 border-t-neonCyan space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-3 rounded-xl bg-neonCyan/20 text-neonCyan font-bold text-2xl float-sticker">🛡️</div>
+                            <h3 class="text-xl font-bold text-white">Sizning Huquqlaringiz</h3>
+                        </div>
+                        <ul class="space-y-3 text-slate-300 text-xs md:text-sm">
+                            <li class="flex items-start space-x-2">
+                                <span class="text-neonCyan font-bold">✓</span>
+                                <span>Sifatli va zamonaviy ta'lim olish huquqi</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="text-neonCyan font-bold">✓</span>
+                                <span>O'z fikri va qarashlarini erkin bildirish</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="text-neonCyan font-bold">✓</span>
+                                <span>Xavfsiz va qulay maktab muhitida o'qish</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="text-neonCyan font-bold">✓</span>
+                                <span>Tashabbus va tadbirlarni taklif etish</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Responsibilities -->
+                    <div class="glass-card p-6 rounded-2xl reveal delay-2 border-t-4 border-t-neonMint space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-3 rounded-xl bg-neonMint/20 text-neonMint font-bold text-2xl float-sticker">⚡</div>
+                            <h3 class="text-xl font-bold text-white">Sizning Mas'uliyatingiz</h3>
+                        </div>
+                        <ul class="space-y-3 text-slate-300 text-xs md:text-sm">
+                            <li class="flex items-start space-x-2">
+                                <span class="text-neonMint font-bold">✓</span>
+                                <span>Boshqalarning erkinligi va shaxsini hurmat qilish</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="text-neonMint font-bold">✓</span>
+                                <span>Maktab va jamoat mulkini ehtiyot qilish</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="text-neonMint font-bold">✓</span>
+                                <span>Ichki tartib-qoidalarga va qonunlarga rioya qilish</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="text-neonMint font-bold">✓</span>
+                                <span>O'z xatti-harakatlarining oqibatiga javob berish</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 6: Tashabbuskorlik va yetakchilik -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-5xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-purple-400 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">🔥</span> Yetakchilik Yo'li
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Tashabbuskorlik va Yetakchilik</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Kichik g'oyadan katta ijtimoiy o'zgarishlargacha bo'lgan zanjir</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="glass-card p-6 rounded-2xl reveal delay-1 space-y-3 relative overflow-hidden">
+                        <div class="w-12 h-12 rounded-xl bg-neonMint/20 text-neonMint flex items-center justify-center font-bold text-2xl float-sticker">💡</div>
+                        <h3 class="font-bold text-white text-base">1. G‘oya</h3>
+                        <p class="text-slate-300 text-xs">Atrofdagi muammoni ko'rish va uni hal etish uchun ijodiy taklif berish.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-2 space-y-3 relative overflow-hidden">
+                        <div class="w-12 h-12 rounded-xl bg-neonCyan/20 text-neonCyan flex items-center justify-center font-bold text-2xl float-sticker">📢</div>
+                        <h3 class="font-bold text-white text-base">2. Birlik</h3>
+                        <p class="text-slate-300 text-xs">G'oya atrofida maqsadli va motivatsiyali safdoshlarni to'plash.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-3 space-y-3 relative overflow-hidden">
+                        <div class="w-12 h-12 rounded-xl bg-amber-400/20 text-amber-400 flex items-center justify-center font-bold text-2xl float-sticker">⚡</div>
+                        <h3 class="font-bold text-white text-base">3. Harakat</h3>
+                        <p class="text-slate-300 text-xs">Aniq reja asosida jamoaviy va tizimli amaliy ishlarni boshlash.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-4 space-y-3 relative overflow-hidden">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-400/20 text-emerald-400 flex items-center justify-center font-bold text-2xl float-sticker">🏆</div>
+                        <h3 class="font-bold text-white text-base">4. Natija</h3>
+                        <p class="text-slate-300 text-xs">Erishilgan natijani tahlil qilish hamda davomiylikni ta'minlash.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 7: Muammodan yechimgacha bo‘lgan qadamlar -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-5xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-neonMint font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">🛠️</span> Algoritm
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Muammodan Yechimgacha 4 Qadam</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Loyiha boshqaruvining amaliy xaritasi</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="glass-card p-5 rounded-2xl reveal delay-1 flex items-center space-x-4 border-l-4 border-neonMint">
+                        <div class="w-12 h-12 rounded-2xl bg-neonMint/20 text-neonMint font-extrabold text-xl flex items-center justify-center flex-shrink-0 float-sticker">1</div>
+                        <div>
+                            <h3 class="font-bold text-white text-base">Muammoni aniq belgilash</h3>
+                            <p class="text-slate-300 text-xs">Mavjud vaziyatni aniqlang: Maktabdagi kutubxona kitoblari kamligi yoki chiqindilar masalasimi?</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl reveal delay-2 flex items-center space-x-4 border-l-4 border-neonCyan">
+                        <div class="w-12 h-12 rounded-2xl bg-neonCyan/20 text-neonCyan font-extrabold text-xl flex items-center justify-center flex-shrink-0 float-sticker">2</div>
+                        <div>
+                            <h3 class="font-bold text-white text-base">Sabablarni tahlil qilish</h3>
+                            <p class="text-slate-300 text-xs">Nima uchun bu muammo kelib chiqqan? Resurs yetishmasligimi yoki e'tiborsizlikmi?</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl reveal delay-3 flex items-center space-x-4 border-l-4 border-amber-400">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-400/20 text-amber-400 font-extrabold text-xl flex items-center justify-center flex-shrink-0 float-sticker">3</div>
+                        <div>
+                            <h3 class="font-bold text-white text-base">Amaliy reja tuzish</h3>
+                            <p class="text-slate-300 text-xs">Vaqt, mas'ullar va zarur manbalarni belgilab, aniq muddatli reja shakllantirish.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl reveal delay-4 flex items-center space-x-4 border-l-4 border-purple-400">
+                        <div class="w-12 h-12 rounded-2xl bg-purple-400/20 text-purple-400 font-extrabold text-xl flex items-center justify-center flex-shrink-0 float-sticker">4</div>
+                        <div>
+                            <h3 class="font-bold text-white text-base">Tatbiq va Monitoring</h3>
+                            <p class="text-slate-300 text-xs">Rejani amalga oshirish, oraliq natijalarni baholash va takomillashtirish.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 8: Hamkorlik va muloqot madaniyati -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-5xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-neonCyan font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">💬</span> Etika
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Hamkorlik va Muloqot Madaniyati</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Muvaffaqiyatli jamoaviy ishning to'rt ustuni</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="glass-card p-6 rounded-2xl reveal delay-1 space-y-2">
+                        <div class="flex items-center space-x-3 text-neonMint">
+                            <span class="text-3xl float-sticker">👂</span>
+                            <h3 class="font-bold text-white text-lg">Faol Tinglash</h3>
+                        </div>
+                        <p class="text-slate-300 text-xs md:text-sm">Suhbatdoshning fikrini bo'lmasdan, uni anglash uchun diqqat bilan tinglash ko'nikmasi.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-2 space-y-2">
+                        <div class="flex items-center space-x-3 text-neonCyan">
+                            <span class="text-3xl float-sticker">🕊️</span>
+                            <h3 class="font-bold text-white text-lg">O'zaro Hurmat</h3>
+                        </div>
+                        <p class="text-slate-300 text-xs md:text-sm">Boshqa qarash va nuqtai nazarlarga nisbatan bag'rikenglik va xushmuomalalik.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-3 space-y-2">
+                        <div class="flex items-center space-x-3 text-amber-400">
+                            <span class="text-3xl float-sticker">🎯</span>
+                            <h3 class="font-bold text-white text-lg">Konstruktiv Tanqid</h3>
+                        </div>
+                        <p class="text-slate-300 text-xs md:text-sm">Shaxsiyatga tegmasdan, faqat g'oya va loyihani yaxshilashga qaratilgan takliflar.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-4 space-y-2">
+                        <div class="flex items-center space-x-3 text-purple-400">
+                            <span class="text-3xl float-sticker">🧩</span>
+                            <h3 class="font-bold text-white text-lg">Murosa (Kompromiss)</h3>
+                        </div>
+                        <p class="text-slate-300 text-xs md:text-sm">Umumiy maqsad yo'lida eng maqbul va har ikki tomon uchun manfaatli yechimni topish.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 9: Maktab va mahalla uchun foydali loyihalar -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-5xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-emerald-400 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">🌱</span> Amaliy Loyihalar
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Maktab va Mahalla Uchun Loyihalar</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">O'quvchilar tomonidan amalga oshirilishi mumkin bo'lgan aniq tashabbuslar</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="glass-card p-6 rounded-2xl reveal delay-1 border-t-4 border-t-emerald-400 space-y-3">
+                        <div class="text-4xl float-sticker">🌿</div>
+                        <h3 class="font-bold text-white text-base">"Yashil Maktab"</h3>
+                        <p class="text-slate-300 text-xs">Maktab hovlisiga daraxt va gullar ekish, ekologik burchaklar tashkil qilish.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-2 border-t-4 border-t-neonCyan space-y-3">
+                        <div class="text-4xl float-sticker">📚</div>
+                        <h3 class="font-bold text-white text-base">"Tengdoshga Ustoz"</h3>
+                        <p class="text-slate-300 text-xs">Past o'zlashtiruvchi o'quvchilarga do'stona yordam ko'rsatish va to'garaklar o'tkazish.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-3 border-t-4 border-t-amber-400 space-y-3">
+                        <div class="text-4xl float-sticker">📖</div>
+                        <h3 class="font-bold text-white text-base">"Kitob Ulashish"</h3>
+                        <p class="text-slate-300 text-xs">O'qilgan kitoblarni almashtirish hamda mahalla kutubxonasiga sovg'a qilish aksiyasi.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-4 border-t-4 border-t-purple-400 space-y-3">
+                        <div class="text-4xl float-sticker">👵</div>
+                        <h3 class="font-bold text-white text-base">"Mehr va E'tibor"</h3>
+                        <p class="text-slate-300 text-xs">Mahalladagi keksa va ko'makka muhtoj insonlar holidan xabar olish va ko'maklashish.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 10: Raqamli fuqarolik va internet madaniyati -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-5xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-neonCyan font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">💻</span> Raqamli Dunyo
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Raqamli Fuqarolik va Internet Madaniyati</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Zamonaviy va xavfsiz onlayn makonda mas'uliyatli bo'lish</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="glass-card p-6 rounded-2xl reveal delay-1 flex items-start space-x-4">
+                        <div class="p-3 rounded-2xl bg-neonCyan/20 text-neonCyan font-bold text-2xl float-sticker">🕵️‍♂️</div>
+                        <div class="space-y-1">
+                            <h3 class="font-bold text-white text-base">Faktlarni Tekshirish (Fact-checking)</h3>
+                            <p class="text-slate-300 text-xs">Yolg'on va tasdiqlanmagan xabarlarga (feyk) ishonmaslik va ularni tarqatmaslik.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-2 flex items-start space-x-4">
+                        <div class="p-3 rounded-2xl bg-neonMint/20 text-neonMint font-bold text-2xl float-sticker">🔐</div>
+                        <div class="space-y-1">
+                            <h3 class="font-bold text-white text-base">Kiberxavfsizlik va Maxfiylik</h3>
+                            <p class="text-slate-300 text-xs">Shaxsiy ma'lumotlarni muhofaza qilish, murakkab parollardan foydalanish.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-3 flex items-start space-x-4">
+                        <div class="p-3 rounded-2xl bg-purple-400/20 text-purple-400 font-bold text-2xl float-sticker">🌐</div>
+                        <div class="space-y-1">
+                            <h3 class="font-bold text-white text-base">Netiket (Netiquette)</h3>
+                            <p class="text-slate-300 text-xs">Ijtimoiy tarmoqlarda odob-axloq qoidalariga amal qilish, bulling qilmaslik.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-4 flex items-start space-x-4">
+                        <div class="p-3 rounded-2xl bg-amber-400/20 text-amber-400 font-bold text-2xl float-sticker">📲</div>
+                        <div class="space-y-1">
+                            <h3 class="font-bold text-white text-base">Media Savodxonlik</h3>
+                            <p class="text-slate-300 text-xs">Axborot oqimini saralay bilish va raqamli resurslardan unumli foydalanish.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 11: Bir haftalik amaliy loyiha rejasi -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-5xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-neonMint font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">📅</span> Reja
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Bir Haftalik Amaliy Reja</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Kichik qadamlar bilan katta marralarga erishish</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div class="glass-card p-6 rounded-2xl reveal delay-1 space-y-3 border-t-4 border-t-neonMint">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold text-neonMint uppercase">1 - 2 KUN</span>
+                            <span class="float-sticker text-xl">💡</span>
+                        </div>
+                        <h3 class="font-bold text-white text-base">G'oya va Jamoa</h3>
+                        <p class="text-slate-300 text-xs">Maktabdagi mavjud muammoni tanlash, do'stlar va maslakdashlar bilan guruh shakllantirish.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-2 space-y-3 border-t-4 border-t-neonCyan">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold text-neonCyan uppercase">3 - 4 KUN</span>
+                            <span class="float-sticker text-xl">📝</span>
+                        </div>
+                        <h3 class="font-bold text-white text-base">Tahlil va Tayyorgarlik</h3>
+                        <p class="text-slate-300 text-xs">O'qituvchilar va rahbariyat bilan maslahatlashish, loyiha smetasi va rejasini tasdiqlash.</p>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-2xl reveal delay-3 space-y-3 border-t-4 border-t-amber-400">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold text-amber-400 uppercase">5 - 7 KUN</span>
+                            <span class="float-sticker text-xl">🎉</span>
+                        </div>
+                        <h3 class="font-bold text-white text-base">Ijro va Taqdimot</h3>
+                        <p class="text-slate-300 text-xs">Loyihani amalga oshirish, natijalarni fotosuratlarda aks ettirish hamda sinfga namoyish qilish.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 12: Interaktiv Savol (Quiz) -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-3xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-accentGold font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">❓</span> Interaktiv Savol
+                    </span>
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-white">Faol Fuqarolik Vaziyati</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Quyidagi vaziyatda eng to'g'ri fuqarolik pozitsiyasini tanlang</p>
+                </div>
+
+                <div class="glass-card p-6 rounded-2xl reveal delay-1 space-y-5">
+                    <p class="text-white font-semibold text-sm md:text-base leading-relaxed">
+                        🏫 <strong>Vaziyat:</strong> Maktab sport maydonchasidagi panjara shikastlangan va o'quvchilar xavfsizligiga xavf tug'dirmoqda. Asl faol fuqaro sifatida birinchi navbatda nima qilasiz?
+                    </p>
+
+                    <div class="space-y-3 pt-2" id="quiz-options">
+                        <button onclick="checkAnswer(this, false)" class="w-full text-left p-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs md:text-sm transition flex items-center justify-between">
+                            <span>A) E'tibor bermasdan o'tib ketaman, bu maktab qorovulining vazifasi.</span>
+                            <span class="status-icon"></span>
+                        </button>
+                        <button onclick="checkAnswer(this, true)" class="w-full text-left p-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs md:text-sm transition flex items-center justify-between">
+                            <span>B) Maktab rahbariyati va sinf rahbariga ma'lum qilib, muammoni bartaraf etishni taklif etaman.</span>
+                            <span class="status-icon"></span>
+                        </button>
+                        <button onclick="checkAnswer(this, false)" class="w-full text-left p-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs md:text-sm transition flex items-center justify-between">
+                            <span>C) Ijtimoiy tarmoqda salbiy izoh qoldirib, xabar tarqataman.</span>
+                            <span class="status-icon"></span>
+                        </button>
+                    </div>
+
+                    <div id="quiz-explanation" class="hidden p-4 rounded-xl glass-panel border border-neonMint/40 text-xs text-slate-200 space-y-2">
+                        <div class="font-bold text-neonMint flex items-center space-x-2">
+                            <span class="float-sticker">✨</span>
+                            <span>Tahlil va Izoh:</span>
+                        </div>
+                        <p>To'g'ri javob: <strong>B</strong>. Faol fuqaro muammodan qochmaydi yoki uni faqat tanqid qilmaydi, balki mas'ullar bilan samarali muloqot o'rnatib, yechim taklif etadi.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 13: Shaxsiy harakat rejasi -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-4xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-neonMint font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">📜</span> Shaxsiy Va'da
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Mening Shaxsiy Harakat Rejam</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Bugundanoq bajarishni boshlaydigan majburiyatlaringizni belgilang</p>
+                </div>
+
+                <div class="glass-card p-6 rounded-2xl reveal delay-1 space-y-4">
+                    <div class="space-y-3">
+                        <label class="flex items-center space-x-3 p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 cursor-pointer border border-slate-700/60 transition">
+                            <input type="checkbox" checked class="w-5 h-5 rounded text-neonMint focus:ring-0 bg-slate-900 border-slate-700">
+                            <span class="text-slate-200 text-xs md:text-sm">Har kuni darslarga puxta tayyorgarlik ko'rib, doimiy izlanishda bo'laman.</span>
+                        </label>
+                        <label class="flex items-center space-x-3 p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 cursor-pointer border border-slate-700/60 transition">
+                            <input type="checkbox" checked class="w-5 h-5 rounded text-neonMint focus:ring-0 bg-slate-900 border-slate-700">
+                            <span class="text-slate-200 text-xs md:text-sm">Sinf va maktabdagi jamoat ishlarida hamda loyihalarda faol qatnashaman.</span>
+                        </label>
+                        <label class="flex items-center space-x-3 p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 cursor-pointer border border-slate-700/60 transition">
+                            <input type="checkbox" checked class="w-5 h-5 rounded text-neonMint focus:ring-0 bg-slate-900 border-slate-700">
+                            <span class="text-slate-200 text-xs md:text-sm">Maktab va mahalla mulkini asrab-avaylayman, ekologiyani muhofaza qilaman.</span>
+                        </label>
+                        <label class="flex items-center space-x-3 p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 cursor-pointer border border-slate-700/60 transition">
+                            <input type="checkbox" checked class="w-5 h-5 rounded text-neonMint focus:ring-0 bg-slate-900 border-slate-700">
+                            <span class="text-slate-200 text-xs md:text-sm">Internet va ijtimoiy tarmoqlardan unumli hamda mas'uliyat bilan foydalanaman.</span>
+                        </label>
+                    </div>
+
+                    <div class="pt-2 text-center text-neonMint text-xs font-bold flex items-center justify-center space-x-2">
+                        <span class="float-sticker">🎯</span>
+                        <span>Ushbu va'dalar — Sizning fuqarolik sari birinchi mustahkam qadamingizdir!</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 14: Ta’sirli xulosa va e’tibor uchun rahmat -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-4xl w-full text-center space-y-6">
+                <div class="reveal inline-flex items-center space-x-2 px-4 py-2 rounded-full glass-panel border border-neonCyan/40 text-neonCyan text-xs font-bold tracking-wide uppercase">
+                    <span class="float-sticker">🌈</span>
+                    <span>Xulosa</span>
+                </div>
+
+                <h2 class="reveal delay-1 text-4xl sm:text-6xl font-black text-white leading-tight">
+                    Kelajak — Bugungi <br>
+                    <span class="bg-gradient-to-r from-neonMint via-neonCyan to-purple-400 bg-clip-text text-transparent">
+                        Harakatlaringiz Mahsuli!
+                    </span>
+                </h2>
+
+                <p class="reveal delay-2 text-slate-200 text-sm sm:text-lg max-w-2xl mx-auto leading-relaxed">
+                    Har bir buyuk o'zgarish kichik bir tashabbusdan boshlanadi. Bugungi faollik — ertangi rivojlangan Vatan garovidir!
+                </p>
+
+                <div class="reveal delay-3 py-6">
+                    <div class="inline-block p-8 rounded-3xl glass-panel border border-neonMint/40 shadow-neon">
+                        <p class="text-3xl md:text-5xl font-black bg-gradient-to-r from-neonMint via-white to-neonCyan bg-clip-text text-transparent">
+                            E’tiboringiz uchun rahmat!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 15: Bizning jamoa (Mualliflar sahifasi) -->
+        <section class="slide flex items-center justify-center p-4 md:p-12">
+            <div class="max-w-6xl w-full flex flex-col justify-center space-y-6 custom-scroll overflow-y-auto">
+                <div class="text-center space-y-2">
+                    <span class="text-neonMint font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-1">
+                        <span class="float-sticker">👥</span> Mualliflar
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-extrabold text-white">Bizning Jamoa</h2>
+                    <p class="text-slate-300 text-xs md:text-sm">Loyiha va taqdimot ustida ishlagan mualliflar</p>
+                </div>
+
+                <!-- Team Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    
+                    <!-- 1. Jaloliddinov Jamoliddin (Leader Featured Design) -->
+                    <div class="sm:col-span-2 lg:col-span-3 glass-card p-6 rounded-3xl leader-border relative overflow-hidden bg-gradient-to-r from-slate-900/90 via-slate-800/90 to-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-6 reveal delay-1">
+                        <div class="flex items-center space-x-5">
+                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-accentGold via-neonMint to-purple-500 flex items-center justify-center text-slate-950 font-black text-2xl shadow-neon flex-shrink-0 float-sticker">
+                                JJ
+                            </div>
+                            <div>
+                                <div class="inline-block px-3 py-1 rounded-full bg-accentGold/20 text-accentGold font-extrabold text-xs uppercase mb-1 border border-accentGold/40">
+                                    👑 Jamoa Yetakchisi
+                                </div>
+                                <h3 class="text-2xl md:text-3xl font-black text-white">Jaloliddinov Jamoliddin</h3>
+                                <p class="text-slate-300 text-xs md:text-sm">Bosh loyihachi va konsept muallifi</p>
+                            </div>
+                        </div>
+                        <div class="text-right hidden sm:block">
+                            <span class="text-3xl float-sticker">🌟</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Odilov Azizbek -->
+                    <div class="glass-card p-5 rounded-2xl reveal delay-2 flex items-center space-x-4">
+                        <div class="w-14 h-14 rounded-2xl bg-neonCyan/20 text-neonCyan flex items-center justify-center font-black text-lg flex-shrink-0 border border-neonCyan/40 float-sticker">
+                            OA
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-base">Odilov Azizbek</h4>
+                            <p class="text-slate-400 text-xs">Jamoa a'zosi / Tadqiqotchi 🔍</p>
+                        </div>
+                    </div>
+
+                    <!-- 3. Yuldashev Farid -->
+                    <div class="glass-card p-5 rounded-2xl reveal delay-3 flex items-center space-x-4">
+                        <div class="w-14 h-14 rounded-2xl bg-amber-400/20 text-amber-400 flex items-center justify-center font-black text-lg flex-shrink-0 border border-amber-400/40 float-sticker">
+                            YF
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-base">Yuldashev Farid</h4>
+                            <p class="text-slate-400 text-xs">Jamoa a'zosi / Kontent rejalashtiruvchi 📝</p>
+                        </div>
+                    </div>
+
+                    <!-- 4. Shomirzayev Jahongir -->
+                    <div class="glass-card p-5 rounded-2xl reveal delay-4 flex items-center space-x-4">
+                        <div class="w-14 h-14 rounded-2xl bg-purple-400/20 text-purple-400 flex items-center justify-center font-black text-lg flex-shrink-0 border border-purple-400/40 float-sticker">
+                            SJ
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-base">Shomirzayev Jahongir</h4>
+                            <p class="text-slate-400 text-xs">Jamoa a'zosi / Dizayner 🎨</p>
+                        </div>
+                    </div>
+
+                    <!-- 5. Xusanov Xusan -->
+                    <div class="glass-card p-5 rounded-2xl reveal delay-5 flex items-center space-x-4 sm:col-span-2 lg:col-span-1">
+                        <div class="w-14 h-14 rounded-2xl bg-emerald-400/20 text-emerald-400 flex items-center justify-center font-black text-lg flex-shrink-0 border border-emerald-400/40 float-sticker">
+                            XX
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-base">Xusanov Xusan</h4>
+                            <p class="text-slate-400 text-xs">Jamoa a'zosi / Texnik muharrir 🛠️</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION & PROGRESS BAR -->
+    <footer class="relative z-50 px-4 py-3 glass-panel border-t border-slate-700/50 flex flex-col space-y-2">
+        <!-- Progress Bar -->
+        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div id="progress-bar" class="h-full bg-gradient-to-r from-neonMint via-neonCyan to-purple-500 transition-all duration-300" style="width: 6.66%;"></div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs">
+            <!-- Prev Button -->
+            <button onclick="prevSlide()" class="px-5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 text-slate-200 transition flex items-center space-x-1.5 active:scale-95 font-medium">
+                <span>&larr;</span>
+                <span class="hidden sm:inline">Oldingi</span>
+            </button>
+
+            <!-- Counter -->
+            <div class="text-slate-300 font-semibold text-sm">
+                <span id="current-slide-num" class="text-neonMint font-black">1</span> / <span id="total-slides-num">15</span>
+            </div>
+
+            <!-- Next Button -->
+            <button onclick="nextSlide()" class="px-5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 text-slate-200 transition flex items-center space-x-1.5 active:scale-95 font-medium">
+                <span class="hidden sm:inline">Keyingi</span>
+                <span>&rarr;</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- SLIDE CATALOG MODAL -->
+    <div id="catalog-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="max-w-4xl w-full max-h-[85vh] glass-panel rounded-3xl p-6 flex flex-col space-y-4 border border-slate-700">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700">
+                <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <span>📚</span>
+                    <span>Slaydlar Katalogi</span>
+                </h3>
+                <button onclick="toggleModal('catalog-modal')" class="p-2 text-slate-400 hover:text-white text-xl">&times;</button>
+            </div>
+            
+            <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 overflow-y-auto custom-scroll pr-1">
+                <!-- Catalog buttons injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT CONTROLLER -->
+    <script>
+        // Global Variables
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let autoPlayInterval = null;
+        let isAutoPlaying = false;
+
+        // Slide Titles
+        const slideTitles = [
+            "Mavzu va Kirish",
+            "Faol o‘quvchi kim?",
+            "Faol fuqarolik nima?",
+            "Odatlar va Fazilatlar",
+            "Huquq va Mas’uliyat",
+            "Tashabbuskorlik",
+            "Muammodan Yechimga",
+            "Muloqot Madaniyati",
+            "Amaliy Loyihalar",
+            "Raqamli Fuqarolik",
+            "Bir Haftalik Reja",
+            "Interaktiv Savol",
+            "Shaxsiy Reja",
+            "Xulosa va Rahmat",
+            "Bizning Jamoa"
+        ];
+
+        // Initialize presentation
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('total-slides-num').innerText = totalSlides;
+            renderCatalog();
+            updateSlideView();
+            initCanvas();
+        });
+
+        // Navigation Functions
+        function updateSlideView() {
+            slides.forEach((slide, idx) => {
+                slide.classList.toggle('active', idx === currentSlide);
+            });
+
+            document.getElementById('current-slide-num').innerText = currentSlide + 1;
+            const progressPercent = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+        }
+
+        function goToSlide(index) {
+            if (index >= 0 && index < totalSlides) {
+                currentSlide = index;
+                updateSlideView();
+            }
+        }
+
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            updateSlideView();
+        }
+
+        function prevSlide() {
+            currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+            updateSlideView();
+        }
+
+        // Modal Handler
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+        }
+
+        // Render Catalog Grid
+        function renderCatalog() {
+            const grid = document.getElementById('catalog-grid');
+            grid.innerHTML = '';
+            slideTitles.forEach((title, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `p-3 rounded-xl border text-left text-xs transition flex flex-col justify-between space-y-2 ${idx === currentSlide ? 'bg-neonMint/20 border-neonMint text-neonMint font-bold' : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:border-slate-500'}`;
+                btn.innerHTML = `
+                    <span class="text-[10px] opacity-60">Slayd ${idx + 1}</span>
+                    <span class="line-clamp-2">${title}</span>
+                `;
+                btn.onclick = () => {
+                    goToSlide(idx);
+                    toggleModal('catalog-modal');
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        // Keyboard Navigation
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            } else if (e.key === 'Escape') {
+                document.getElementById('catalog-modal').classList.add('hidden');
+            }
+        });
+
+        // Touch Swipe Navigation for Mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+        const container = document.getElementById('slides-container');
+
+        container.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        container.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 40) {
+                nextSlide();
+            }
+            if (touchEndX > touchStartX + 40) {
+                prevSlide();
+            }
+        }
+
+        // Auto Play
+        function toggleAutoPlay() {
+            isAutoPlaying = !isAutoPlaying;
+            const iconPlay = document.getElementById('icon-play');
+            const iconPause = document.getElementById('icon-pause');
+            const label = document.getElementById('label-autoplay');
+
+            if (isAutoPlaying) {
+                iconPlay.classList.add('hidden');
+                iconPause.classList.remove('hidden');
+                label.innerText = 'To\'xtat';
+                autoPlayInterval = setInterval(nextSlide, 5000);
+            } else {
+                iconPlay.classList.remove('hidden');
+                iconPause.classList.add('hidden');
+                label.innerText = 'Avto';
+                clearInterval(autoPlayInterval);
+            }
+        }
+
+        // Fullscreen Toggle
+        function toggleFullScreen() {
+            const fsEnter = document.getElementById('icon-fs-enter');
+            const fsExit = document.getElementById('icon-fs-exit');
+
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    fsEnter.classList.add('hidden');
+                    fsExit.classList.remove('hidden');
+                }).catch(err => console.log(err));
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().then(() => {
+                        fsEnter.classList.remove('hidden');
+                        fsExit.classList.add('hidden');
+                    });
+                }
+            }
+        }
+
+        // Interactive Quiz Option Checker
+        function checkAnswer(btnElement, isCorrect) {
+            const parent = document.getElementById('quiz-options');
+            const buttons = parent.querySelectorAll('button');
+            const explanation = document.getElementById('quiz-explanation');
+
+            buttons.forEach(b => {
+                b.disabled = true;
+                b.classList.remove('hover:bg-slate-700/80');
+            });
+
+            if (isCorrect) {
+                btnElement.classList.add('bg-emerald-500/20', 'border-emerald-500', 'text-emerald-300');
+                btnElement.querySelector('.status-icon').innerText = '✓ To‘g‘ri';
+            } else {
+                btnElement.classList.add('bg-rose-500/20', 'border-rose-500', 'text-rose-300');
+                btnElement.querySelector('.status-icon').innerText = '✕ Noto‘g‘ri';
+            }
+
+            explanation.classList.remove('hidden');
+        }
+
+        // PRINT FUNCTION (Direct printer trigger)
+        function printPresentation() {
+            window.print();
+        }
+
+        // Animated Particle Background Canvas
+        function initCanvas() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            const particles = [];
+            const count = 45;
+
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2.5 + 1,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    alpha: Math.random() * 0.6 + 0.2
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    if (p.x < 0) p.x = canvas.width;
+                    if (p.x > canvas.width) p.x = 0;
+                    if (p.y < 0) p.y = canvas.height;
+                    if (p.y > canvas.height) p.y = 0;
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0, 245, 212, ${p.alpha})`;
+                    ctx.fill();
+                });
+
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+    </script>
+</body>
+</html>
